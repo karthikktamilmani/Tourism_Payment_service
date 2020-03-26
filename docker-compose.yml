@@ -1,6 +1,0 @@
-web:
-  build: ./app 
-  ports:
-   - "8081:8081"  
-  volumes:
-   - .:/code
