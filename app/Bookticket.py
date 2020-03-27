@@ -52,13 +52,7 @@ def book_ticket():
         frm = getDataFromRequest(dataObj=data,keyValue="from")
         to = getDataFromRequest(dataObj=data,keyValue="to")
         name_on_card = getDataFromRequest(dataObj=data,keyValue="name")
-        # email = data.get("email")
-        # date = data.get("date")
-        # price = data.get("price")
-        # frm = data.get("from")
-        # to = data.get("to")
-        # name_on_card = data.get("name")
-
+        ##
         payment_info = data.get("payment_info")
         ######## nested attribute of payment_info#######
         card_number = getDataFromRequest(dataObj=payment_info,keyValue="card_number")
@@ -75,22 +69,10 @@ def book_ticket():
             response_json["message"] = "ok"
         else:
             return json.dumps(response_json)
-        
-        # Print out some data about the table.
-        # This will cause a request to be made to DynamoDB and its attribute
-        # values will be set based on the response.
-        app.logger.debug(table.creation_date_time)
         ##
-        # tempid = datetime.utcnow().strftime('%f')
-        app.logger.debug("Current time")
-        app.logger.debug(datetime.utcnow().microsecond)
-        # tempid = datetime.utcnow().microsecond
+        # TODO: call payment API
+        ##
         tempid = int(time.time()*1000.0)
-        # tempid = temp_booking_id + 1
-        # temp_booking_id = tempid
-        # app.logger.debug("Count")
-        # app.logger.debug(temp_booking_id)
-        # insert values into the database and return message
         table.put_item(
             Item={
                 'ID' : tempid, 
