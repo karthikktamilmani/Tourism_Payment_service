@@ -16,9 +16,9 @@ from random import randint
 logging.basicConfig(level=logging.DEBUG)
 
 session = boto3.Session(
-aws_access_key_id='ASIAVBLO43SBDJCVMVPJ',
-aws_secret_access_key='G2lBrd+OIi0rqXmkqUwuXiudtqRdTvm5M/Dm4Yvo',
-aws_session_token='FwoGZXIvYXdzEK///////////wEaDDZLNPI49fTwo6TMfiK+AawwbftpiNdPkVXm5kJi8lxhhKlRCLiph+fkRBxiab5aaGF8TkpHmzzDxm9qUbLEsBYn4rBtqFHiGzxgPXFfP5xQhiXeoeB0tTLN26rgKkW/kaUfS7G63JNUggTU7VFCQmjflAM911eCHc95mdVF7IFeuqJ3ta98Dg9/psNVoCiHRFSN9yEmNwTc8HmMOT7qCIpxB1eiUjrjuMCzwuDcL/g+pHA7Ud+rCjNjwy3kim29mu0TOnBHal08ssKsMoco/rP08wUyLZRpoWu3bmLK4Uw2rKLqlEKrzBHYhri5n0Xww0rQygpZo6lk4n+FFHYDLxt27Q==',
+aws_access_key_id='ASIAVBLO43SBMEXMSHED',
+aws_secret_access_key='N8ZF10DW5tsqqdOj4m3Cw/bi4+CJGmE5ZJpb1/p6',
+aws_session_token='FwoGZXIvYXdzELH//////////wEaDJ4EyeiUyGnrZfQA0yK+Abz2EORAR4U5FYplppdRmDoR2kCEtOYt9wRRVIMEE4Z/36v8YPfBnnaT1g7F3K7hJ5wu7w1grEbzwlXMyXS4iU3HBIIHBkp/WElAOL5wLHt5Vd4ejlpSVzYMaGK/Mv7MVpk7PGgvL8KNJSfZrzHvjr+9uhYZip5auPrYLKSgHms9CL7h/7fBgwQCvRSac6IWtYtpO6fDg4E/Lxj9IeTrMT622pFJAv7TEyfOYtPQMA0Py9lg+tIKbd/9TOUvSzAoju308wUyLb5SUOdN1TUpHpBLxljqhOlFQfYGV8tzWMsJ0ZfleHats+HrO540BSRsmbE4Cg==',
 region_name='us-east-1')
 
 dynamodb = session.resource('dynamodb')
@@ -39,6 +39,7 @@ def getDataFromRequest(dataObj,keyValue,requestObj=None):
 def book_ticket():
     response_json = {}
     response_json["message"] = "error"
+    global temp_booking_id
     try:
         app.logger.debug(request)
         data = request.get_json()
@@ -58,24 +59,37 @@ def book_ticket():
         # to = data.get("to")
         # name_on_card = data.get("name")
 
-        payment_info = getDataFromRequest(dataObj=data,keyValue="payment_info")   
+        payment_info = data.get("payment_info")
         ######## nested attribute of payment_info#######
         card_number = getDataFromRequest(dataObj=payment_info,keyValue="card_number")
+        app.logger.debug(card_number)
         card_number = helper.encryptValue(card_number)
+        app.logger.debug(card_number)
         expiry = getDataFromRequest(dataObj=payment_info,keyValue="expiry")
         expiry = helper.encryptValue(expiry)
+        app.logger.debug(expiry)
         cvv = getDataFromRequest(dataObj=payment_info,keyValue="cvv")
-        
+        app.logger.debug(cvv)
+
         if encoder.check_validity_token(request.headers['token'],email):
             response_json["message"] = "ok"
+        else:
+            return json.dumps(response_json)
         
         # Print out some data about the table.
         # This will cause a request to be made to DynamoDB and its attribute
         # values will be set based on the response.
         app.logger.debug(table.creation_date_time)
         ##
-        # tempid = datetime.utcnow().strftime('%f')[:-3]
-        tempid = randint(0, 100000)
+        # tempid = datetime.utcnow().strftime('%f')
+        app.logger.debug("Current time")
+        app.logger.debug(datetime.utcnow().microsecond)
+        # tempid = datetime.utcnow().microsecond
+        tempid = int(time.time()*1000.0)
+        # tempid = temp_booking_id + 1
+        # temp_booking_id = tempid
+        # app.logger.debug("Count")
+        # app.logger.debug(temp_booking_id)
         # insert values into the database and return message
         table.put_item(
             Item={
@@ -88,6 +102,10 @@ def book_ticket():
             }
         )
 
+        app.logger.debug(name_on_card)
+        app.logger.debug(card_number)
+        app.logger.debug(expiry)
+
         table2.put_item(
             Item={
                 'Email' : email,
@@ -98,7 +116,9 @@ def book_ticket():
         )
 
     except Exception as e:
+        app.logger.debug("Error")
         app.logger.debug(e)
+        response_json["message"] = "error"
     
     return json.dumps(response_json)
 
@@ -109,27 +129,25 @@ def card_details(email):
     try:
         app.logger.debug(request)
         # data = request.get_json()
-        # app.logger.debug(data)
-
-        #email = data.get("email")
+        app.logger.debug(email)
         email = b64decoding(email)
-
         if encoder.check_validity_token(request.headers['token'],email):
             response_json["message"] = "ok"
+        else:
+            return json.dumps(response_json)
 
-        response = table2.query( KeyConditionExpression=Key('Email').eq(email) )
-        
-        # lst = {}
-        # for index,i in enumerate(response['Items']):
-        #     lst[index] = i
-        lst = []
-        for i in response['Items']:
-            i = helper.decryptValue(i['Card'])
-            i = helper.decryptValue(i['Expiry'])
-            lst.append(i)
-        response_json = lst
+        response = table2.get_item( Key={
+                'Email': email
+            })
+
+        if 'Item' in response:
+            item = response['Item']
+            response_json["card_number"] = helper.decryptValue(item['Card'].value)
+            response_json["expiry"] = helper.decryptValue(item['Expiry'].value)
+            response_json["name"] = item['Name']
 
     except Exception as e:
         app.logger.debug(e)
+        response_json["message"] = "error"
             
     return jsonify(response_json)
