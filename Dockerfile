@@ -11,8 +11,8 @@ RUN pip3 --no-cache-dir install -r requirements.txt
 
 COPY . /app
 
-EXPOSE 8081 
+EXPOSE 5002
 
 ENTRYPOINT [ "python3" ]
 
-CMD [ "Bookticket.py" ]
+CMD [ "payment.py" ]
