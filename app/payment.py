@@ -11,6 +11,10 @@ def getDataFromRequest(dataObj,keyValue,requestObj=None):
     else:
         return request.args.get(keyValue)
 
+@app.route("/paymentHealth")
+def payment_health():
+    return "payment"
+
 
 @app.route("/payment" , methods=['POST'])
 def proceed_payment():

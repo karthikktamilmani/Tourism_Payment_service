@@ -11,8 +11,8 @@ RUN pip3 --no-cache-dir install -r requirements.txt
 
 COPY . /app
 
-EXPOSE 5002
+EXPOSE 5004
 
 ENTRYPOINT [ "python3" ]
 
-CMD [ "payment.py" ]
+CMD [ "testRun.py" ]
